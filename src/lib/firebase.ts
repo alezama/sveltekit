@@ -1,9 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { writable } from "svelte/store";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -15,13 +15,39 @@ const firebaseConfig = {
   projectId: "running-app-dabcf",
   storageBucket: "running-app-dabcf.appspot.com",
   messagingSenderId: "35349462607",
-  appId: "1:35349462607:web:f64b6bb102db4b5436b43a",
-  measurementId: "G-LP121RQTYZ"
+  appId: "1:35349462607:web:dbe12ae4e4c0d84f36b43a",
+  measurementId: "G-W7D4RJ027M"
 };
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 export const db  = getFirestore();
 export const auth = getAuth();
 export const storage = getStorage();
+
+
+function userStore() {
+  let unsubscribe: () => void;
+
+  if (!auth || !globalThis.window) {
+    console.warn("Auth is not initilialized or not in browser");
+    const {subscribe} = writable<User | null> (null);
+    return {
+      subscribe,
+    }
+  }
+
+   const { subscribe } = writable(auth?.currentUser ?? null, (set) => {
+    unsubscribe  = onAuthStateChanged(auth, (user) => {
+      set(user);
+    });
+    return () => unsubscribe();
+   });
+
+   return {
+    subscribe,
+   };
+}
+
+export const user = userStore();
